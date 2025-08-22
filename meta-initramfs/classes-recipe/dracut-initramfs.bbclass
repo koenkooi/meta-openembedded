@@ -14,29 +14,31 @@ CORE_IMAGE_EXTRA_INSTALL += " \
                              dracut \
                             "
 python __anonymous() {
-    # Be annoying and print this multiple times during parsing, needs a better place
+    # Only do something if INITRAMFS_TYPE is set to 'dracut'
     initramfstype = d.getVar('INITRAMFS_TYPE')
-    if not initramfstype:
-        bb.warn("No INITRAMFS_TYPE specified.")
+    if initramfstype:
+        if initramfstype == 'dracut':
 
-    # Inject initramfs into WIC if IMAGE_BOOT_FILES is being used
-    bootfiles = d.getVar('IMAGE_BOOT_FILES')
-    if bootfiles:
-        d.setVar('IMAGE_BOOT_FILES', bootfiles + ' initramfs-dracut.img')
+            # Inject initramfs into WIC if IMAGE_BOOT_FILES is being used
+            bootfiles = d.getVar('IMAGE_BOOT_FILES')
+            if bootfiles:
+                d.setVar('IMAGE_BOOT_FILES', bootfiles + ' initramfs-dracut.img')
 
-    # Inject initramfs into extlinux config, but only if it hasn't been configured yet
-    # We could be more impolite and overwrite it, but let's save that for a later date
-    extlinuxvibes = d.getVar('UBOOT_EXTLINUX')
-    if extlinuxvibes == "1":
-        extlinuxinitrd = d.getVar('UBOOT_EXTLINUX_INITRD')
-        if not extlinuxinitrd:
-            d.setVar('UBOOT_EXTLINUX_INITRD','../initramfs-dracut.img')
-            extlinuxbootfiles = d.getVar('UBOOT_EXTLINUX_BOOT_FILES')
-            if extlinuxbootfiles:
-                d.setVar('UBOOT_EXTLINUX_BOOT_FILES', extlinuxbootfiles + ' initramfs-dracut.img')
+            # Inject initramfs into extlinux config, but only if it hasn't been configured yet
+            # We could be more impolite and overwrite it, but let's save that for a later date
+            extlinuxvibes = d.getVar('UBOOT_EXTLINUX')
+            if extlinuxvibes == "1":
+                extlinuxinitrd = d.getVar('UBOOT_EXTLINUX_INITRD')
+                if not extlinuxinitrd:
+                    d.setVar('UBOOT_EXTLINUX_INITRD','../initramfs-dracut.img')
+                    extlinuxbootfiles = d.getVar('UBOOT_EXTLINUX_BOOT_FILES')
+                    if extlinuxbootfiles:
+                        d.setVar('UBOOT_EXTLINUX_BOOT_FILES', extlinuxbootfiles + ' initramfs-dracut.img')
 }
 
 dracut_initramfs () {
+    # TODO: check INITRAMFS_TYPE
+
     set -x
 
     # Counterintuitively, we need to *dis*able pseudo to get correct file ownershop (root:root) in the initramfs, not "builduser:buildgroup"
