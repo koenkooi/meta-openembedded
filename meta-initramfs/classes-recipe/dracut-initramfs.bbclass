@@ -1,6 +1,6 @@
 # Dracut-initramfs.bbclass: a class for generating an initramfs using dracut-ng based on the contents of the main rootfs
 
-inherit core-image
+inherit core-image deploy
 
 # For the initramfs generated at buildtime
 DEPENDS += "dracut-native"
@@ -14,9 +14,23 @@ CORE_IMAGE_EXTRA_INSTALL += " \
                              dracut \
                             "
 python __anonymous() {
+    # Be annoying and print this multiple times during parsing, needs a better place
     initramfstype = d.getVar('INITRAMFS_TYPE')
     if not initramfstype:
         bb.warn("No INITRAMFS_TYPE specified.")
+
+    # Inject initramfs into WIC if IMAGE_BOOT_FILES is being used
+    bootfiles = d.getVar('IMAGE_BOOT_FILES')
+    if bootfiles:
+        d.setVar('IMAGE_BOOT_FILES', d.getVar('IMAGE_BOOT_FILES') + ' initramfs-dracut.img')
+
+    # Inject initramfs into extlinux config only if it hasn't been configured yet
+    # We could be more impolite and overwrite it, but let's save that for a later date
+    extlinuxvibes = d.getVar('UBOOT_EXTLINUX')
+    if extlinuxvibes == "1":
+        extlinuxinitrd = d.getVar('UBOOT_EXTLINUX_INITRD')
+        if not extlinuxinitrd:
+            d.setVar('UBOOT_EXTLINUX_INITRD','../initramfs-dracut.img')
 }
 
 dracut_initramfs () {
@@ -57,5 +71,11 @@ dracut_initramfs () {
 	--force \
 	${IMAGE_ROOTFS}/boot/initramfs-dracut.img 
 }
+
+# We want to inject bootfiles into deploy *before* do_image
+do_deploy() {
+        cp ${IMAGE_ROOTFS}/boot/initramfs-dracut.img ${DEPLOY_DIR_IMAGE}
+}
+addtask deploy after do_rootfs before do_image
 
 IMAGE_PREPROCESS_COMMAND += "dracut_initramfs;"
