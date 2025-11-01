@@ -97,6 +97,7 @@ RDEPENDS:${PN}:append:class-target = " ldd"
 # This could be optimized a bit, but let's avoid non-booting systems :)
 RRECOMMENDS:${PN}:class-target = "kernel-modules \
                                   coreutils \
+				  binutils \
                                  "
 
 BBCLASSEXTEND = "native nativesdk"
